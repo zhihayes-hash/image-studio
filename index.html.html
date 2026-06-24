@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Studio</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --surface-2: #f5f5f7;
+  --border: rgba(0,0,0,0.09);
+  --text-1: #1d1d1f;
+  --text-2: #6e6e73;
+  --text-3: #aeaeb2;
+  --accent: #0071e3;
+  --accent-h: #0077ed;
+  --danger: #ff3b30;
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 18px;
+  --r-xl: 22px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.05);
+  --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-1);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Header */
+header {
+  position: sticky; top: 0; z-index: 100;
+  height: 52px;
+  background: rgba(245,245,247,0.85);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 28px;
+}
+.header-title { font-size: 16px; font-weight: 600; letter-spacing: -0.3px; }
+.header-sub { font-size: 12px; color: var(--text-2); }
+
+/* Layout */
+.workspace {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 760px) {
+  .workspace { grid-template-columns: 1fr; padding: 16px 14px 60px; }
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border-radius: var(--r-xl);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.card-head {
+  padding: 18px 20px 0;
+  display: flex; align-items: center; gap: 9px;
+}
+.card-icon {
+  width: 28px; height: 28px; border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px; flex-shrink: 0;
+}
+.ci-blue { background: #e3eefb; }
+.ci-purple { background: #f0eafb; }
+.ci-green { background: #e4f7ec; }
+.card-title { font-size: 13px; font-weight: 600; letter-spacing: -0.1px; }
+.card-body { padding: 16px 20px 20px; }
+
+/* Fields */
+.field { margin-top: 13px; }
+.field:first-child { margin-top: 0; }
+.field-label {
+  font-size: 11.5px; font-weight: 500;
+  color: var(--text-2); margin-bottom: 5px;
+  letter-spacing: 0.01em;
+}
+.field-label span { color: var(--text-3); font-weight: 400; }
+
+input[type="text"], input[type="password"], textarea, select {
+  width: 100%; font-family: var(--font); font-size: 14px;
+  color: var(--text-1); background: var(--surface-2);
+  border: 1.5px solid transparent; border-radius: var(--r-md);
+  padding: 9px 13px; outline: none;
+  transition: border-color .15s, box-shadow .15s, background .15s;
+  -webkit-appearance: none;
+}
+input[type="text"]:focus, input[type="password"]:focus,
+textarea:focus, select:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,113,227,.10);
+  background: #fff;
+}
+textarea { resize: none; line-height: 1.55; }
+select {
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23aeaeb2'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 12px center;
+  padding-right: 32px;
+}
+
+/* Password field */
+.pw-wrap { position: relative; }
+.pw-wrap input { padding-right: 36px; font-family: monospace; letter-spacing: .05em; font-size: 13px; }
+.eye-btn {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  background: none; border: none; cursor: pointer;
+  color: var(--text-3); padding: 4px; display: flex; align-items: center;
+  transition: color .15s;
+}
+.eye-btn:hover { color: var(--text-2); }
+
+/* Sep */
+.sep { height: 1px; background: var(--border); margin: 14px 0; }
+
+/* Tabs (platform select) */
+.tabs {
+  display: flex; gap: 4px;
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: 3px;
+}
+.tab {
+  flex: 1; padding: 7px 4px;
+  border: none; border-radius: var(--r-sm);
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  cursor: pointer; color: var(--text-2); background: transparent;
+  transition: all .15s; white-space: nowrap;
+}
+.tab.active {
+  background: var(--surface); color: var(--text-1);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.10);
+}
+
+/* Pills */
+.pills { display: flex; gap: 6px; flex-wrap: wrap; }
+.pill {
+  padding: 5px 13px; border-radius: 20px;
+  border: 1.5px solid var(--border);
+  font-size: 13px; cursor: pointer;
+  background: var(--surface-2); color: var(--text-2);
+  transition: all .15s; font-family: var(--font); font-weight: 500;
+}
+.pill:hover { border-color: var(--accent); color: var(--accent); }
+.pill.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* Slider */
+.slider-row { display: flex; align-items: center; gap: 10px; }
+input[type="range"] {
+  -webkit-appearance: none; flex: 1;
+  height: 4px; background: #e0e0e5; border-radius: 2px; outline: none; cursor: pointer;
+}
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 17px; height: 17px;
+  border-radius: 50%; background: #fff; border: none;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.13);
+  cursor: pointer; transition: box-shadow .15s;
+}
+input[type="range"]::-webkit-slider-thumb:hover {
+  box-shadow: 0 0 0 1.5px var(--accent), 0 2px 8px rgba(0,113,227,.2);
+}
+.slider-val { font-size: 13px; color: var(--text-2); min-width: 34px; text-align: right; font-variant-numeric: tabular-nums; }
+
+/* Upload */
+.upload-zone {
+  border: 1.5px dashed var(--border); border-radius: var(--r-lg);
+  padding: 18px; text-align: center; cursor: pointer;
+  transition: border-color .2s, background .2s; position: relative;
+  min-height: 110px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 7px;
+  background: var(--surface-2);
+}
+.upload-zone:hover, .upload-zone.drag-over {
+  border-color: var(--accent); background: rgba(0,113,227,.03);
+}
+.upload-zone input[type="file"] {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+}
+.upload-hint { font-size: 13px; color: var(--text-2); }
+.upload-hint strong { color: var(--accent); font-weight: 500; }
+.upload-hint small { display: block; font-size: 11px; color: var(--text-3); margin-top: 2px; }
+.preview-wrap { width: 100%; border-radius: var(--r-md); overflow: hidden; position: relative; }
+.preview-wrap img { width: 100%; display: block; max-height: 180px; object-fit: cover; border-radius: var(--r-md); }
+.remove-btn {
+  position: absolute; top: 7px; right: 7px;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(0,0,0,.48); border: none; cursor: pointer;
+  color: #fff; font-size: 13px; display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px); transition: background .15s;
+}
+.remove-btn:hover { background: rgba(255,59,48,.85); }
+
+/* Generate button */
+.btn-gen {
+  width: 100%; padding: 12px;
+  border-radius: var(--r-lg); border: none;
+  background: var(--accent); color: #fff;
+  font-family: var(--font); font-size: 15px; font-weight: 600;
+  cursor: pointer; letter-spacing: -.2px;
+  transition: background .15s, transform .1s, opacity .2s;
+  display: flex; align-items: center; justify-content: center; gap: 7px;
+}
+.btn-gen:hover:not(:disabled) { background: var(--accent-h); }
+.btn-gen:active:not(:disabled) { transform: scale(.99); }
+.btn-gen:disabled { opacity: .45; cursor: not-allowed; }
+
+/* Right panel */
+.right-panel { display: flex; flex-direction: column; gap: 18px; }
+
+/* Result */
+.result-area {
+  min-height: 280px; border-radius: var(--r-lg);
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+}
+.result-area img { width: 100%; display: block; border-radius: var(--r-lg); }
+.result-placeholder { text-align: center; color: var(--text-3); }
+.result-placeholder-icon { font-size: 36px; margin-bottom: 8px; opacity: .35; }
+.result-placeholder p { font-size: 13px; }
+
+/* Loading */
+.loading-wrap { display: flex; flex-direction: column; align-items: center; gap: 12px; }
+.spinner {
+  width: 30px; height: 30px;
+  border: 2.5px solid var(--border); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin .7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-wrap p { font-size: 13px; color: var(--text-2); }
+
+/* Action row */
+.action-row { display: flex; gap: 9px; margin-top: 13px; }
+.btn-sec {
+  flex: 1; padding: 9px;
+  border-radius: var(--r-md); border: 1.5px solid var(--border);
+  background: var(--surface); color: var(--accent);
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  cursor: pointer; transition: background .15s, border-color .15s;
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+}
+.btn-sec:hover:not(:disabled) { background: var(--surface-2); border-color: var(--accent); }
+.btn-sec:disabled { opacity: .4; cursor: not-allowed; }
+
+/* Error */
+.error-box {
+  background: rgba(255,59,48,.07); border: 1px solid rgba(255,59,48,.2);
+  border-radius: var(--r-md); padding: 10px 14px;
+  font-size: 13px; color: var(--danger); line-height: 1.5;
+  margin-top: 12px;
+}
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 22px; left: 50%;
+  transform: translateX(-50%) translateY(70px);
+  background: rgba(29,29,31,.9); color: #fff;
+  padding: 9px 18px; border-radius: 20px;
+  font-size: 13px; font-weight: 500;
+  pointer-events: none; backdrop-filter: blur(12px);
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1), opacity .3s;
+  opacity: 0; z-index: 999; white-space: nowrap;
+}
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* Info note */
+.note {
+  font-size: 11.5px; color: var(--text-3);
+  margin-top: 5px; line-height: 1.5;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-title">Image Studio</div>
+  <div class="header-sub">AI 图像生成工具</div>
+</header>
+
+<div class="workspace">
+
+  <!-- LEFT: Controls -->
+  <div class="card">
+    <div class="card-head">
+      <div class="card-icon ci-blue">✏️</div>
+      <span class="card-title">生成设置</span>
+    </div>
+    <div class="card-body">
+
+      <!-- Platform Tabs -->
+      <div class="field">
+        <div class="field-label">平台</div>
+        <div class="tabs">
+          <button class="tab active" data-platform="openai" onclick="switchPlatform('openai')">OpenAI</button>
+          <button class="tab" data-platform="gemini" onclick="switchPlatform('gemini')">Gemini</button>
+          <button class="tab" data-platform="fal" onclick="switchPlatform('fal')">fal.ai (FLUX)</button>
+        </div>
+      </div>
+
+      <!-- API Key -->
+      <div class="field">
+        <div class="field-label">API Key</div>
+        <div class="pw-wrap">
+          <input type="password" id="apiKey" placeholder="粘贴你的 API Key" autocomplete="off" oninput="saveKey()" />
+          <button class="eye-btn" onclick="toggleKey()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="note" id="keyHint">OpenAI Key 格式：sk-...</div>
+      </div>
+
+      <!-- Model -->
+      <div class="field">
+        <div class="field-label">模型</div>
+        <select id="modelSelect" onchange="onModelChange()">
+          <option value="gpt-image-1">gpt-image-1（推荐）</option>
+          <option value="dall-e-3">dall-e-3</option>
+          <option value="dall-e-2">dall-e-2</option>
+        </select>
+      </div>
+
+      <div class="sep"></div>
+
+      <!-- Mode -->
+      <div class="field" id="modeField">
+        <div class="field-label">模式</div>
+        <div class="pills" id="modeGroup">
+          <button class="pill active" data-val="text2img" onclick="selectPill(this,'modeGroup');onModeChange()">文字生图</button>
+          <button class="pill" data-val="img2img" onclick="selectPill(this,'modeGroup');onModeChange()">图片生图</button>
+        </div>
+        <div class="note" id="modeNote" style="display:none;color:#ff9500">⚠️ Gemini 仅支持文字生图</div>
+      </div>
+
+      <!-- Prompt -->
+      <div class="field">
+        <div class="field-label">提示词</div>
+        <textarea id="prompt" rows="4" placeholder="描述你想生成的图像，例如：A serene Japanese garden at dusk, cinematic lighting..."></textarea>
+      </div>
+
+      <!-- Negative Prompt (not for gpt-image-1 / gemini) -->
+      <div class="field" id="negField">
+        <div class="field-label">负面提示词 <span>（可选）</span></div>
+        <textarea id="negPrompt" rows="2" placeholder="不希望出现的元素，例如：blurry, watermark..."></textarea>
+      </div>
+
+      <!-- Reference Image (img2img only) -->
+      <div class="field" id="refField" style="display:none">
+        <div class="field-label">参考图片</div>
+        <div class="upload-zone" id="uploadZone">
+          <input type="file" id="refImage" accept="image/*" onchange="handleUpload(event)" />
+          <div id="uploadPlaceholder">
+            <div style="font-size:26px">🖼</div>
+            <div class="upload-hint"><strong>点击上传</strong>或拖放图片<small>PNG · JPG · WEBP</small></div>
+          </div>
+          <div class="preview-wrap" id="previewWrap" style="display:none">
+            <img id="previewImg" src="" alt="参考图" />
+            <button class="remove-btn" onclick="removeImg(event)">✕</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Strength (img2img) -->
+      <div class="field" id="strengthField" style="display:none">
+        <div class="field-label">参考图强度</div>
+        <div class="slider-row">
+          <input type="range" id="strength" min="0" max="1" step="0.05" value="0.75"
+            oninput="document.getElementById('strengthVal').textContent=parseFloat(this.value).toFixed(2)" />
+          <span class="slider-val" id="strengthVal">0.75</span>
+        </div>
+      </div>
+
+      <div class="sep"></div>
+
+      <!-- Size -->
+      <div class="field">
+        <div class="field-label">尺寸</div>
+        <div class="pills" id="sizeGroup">
+          <button class="pill active" data-val="1024x1024" onclick="selectPill(this,'sizeGroup')">1:1</button>
+          <button class="pill" data-val="1024x1792" onclick="selectPill(this,'sizeGroup')">9:16</button>
+          <button class="pill" data-val="1792x1024" onclick="selectPill(this,'sizeGroup')">16:9</button>
+        </div>
+      </div>
+
+      <!-- Quality (OpenAI) -->
+      <div class="field" id="qualityField">
+        <div class="field-label">质量</div>
+        <div class="pills" id="qualityGroup">
+          <button class="pill active" data-val="auto" onclick="selectPill(this,'qualityGroup')">自动</button>
+          <button class="pill" data-val="high" onclick="selectPill(this,'qualityGroup')">高</button>
+          <button class="pill" data-val="medium" onclick="selectPill(this,'qualityGroup')">中</button>
+          <button class="pill" data-val="low" onclick="selectPill(this,'qualityGroup')">低</button>
+        </div>
+      </div>
+
+      <!-- Steps (fal only) -->
+      <div class="field" id="stepsField" style="display:none">
+        <div class="field-label">推理步数</div>
+        <div class="slider-row">
+          <input type="range" id="steps" min="1" max="50" value="28"
+            oninput="document.getElementById('stepsVal').textContent=this.value" />
+          <span class="slider-val" id="stepsVal">28</span>
+        </div>
+      </div>
+
+      <!-- Num images -->
+      <div class="field">
+        <div class="field-label">生成数量</div>
+        <div class="pills" id="numGroup">
+          <button class="pill active" data-val="1" onclick="selectPill(this,'numGroup')">1</button>
+          <button class="pill" data-val="2" onclick="selectPill(this,'numGroup')">2</button>
+          <button class="pill" data-val="4" onclick="selectPill(this,'numGroup')">4</button>
+        </div>
+      </div>
+
+      <div style="height:14px"></div>
+
+      <button class="btn-gen" id="generateBtn" onclick="generate()">
+        <span id="btnIcon">✦</span>
+        <span id="btnText">生成图像</span>
+      </button>
+
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+
+    <!-- Result -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon ci-green">🎨</div>
+        <span class="card-title">生成结果</span>
+      </div>
+      <div class="card-body">
+        <div class="result-area" id="resultArea">
+          <div class="result-placeholder" id="placeholder">
+            <div class="result-placeholder-icon">✦</div>
+            <p>填写提示词，点击生成</p>
+          </div>
+        </div>
+        <div id="errorBox"></div>
+        <div class="action-row">
+          <button class="btn-sec" id="dlBtn" disabled onclick="downloadAll()">↓ 下载</button>
+          <button class="btn-sec" id="cpBtn" disabled onclick="copyPrompt()">⧉ 复制提示词</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- API Guide -->
+    <div class="card">
+      <div class="card-head">
+        <div class="card-icon ci-purple">📖</div>
+        <span class="card-title">获取 API Key</span>
+      </div>
+      <div class="card-body" style="padding-top:14px">
+        <div id="guideContent"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ── State ── */
+let platform = 'openai';
+let refBase64 = null;
+let refMime = 'image/jpeg';
+let resultUrls = [];
+let busy = false;
+
+const PLATFORMS = {
+  openai: {
+    keyHint: 'OpenAI Key 格式：sk-...',
+    models: [
+      { val:'gpt-image-1', label:'gpt-image-1（推荐）' },
+      { val:'dall-e-3', label:'dall-e-3' },
+      { val:'dall-e-2', label:'dall-e-2' },
+    ],
+    guide: `<p style="font-size:13px;color:var(--text-2);line-height:1.7">
+      1. 前往 <a href="https://platform.openai.com/api-keys" target="_blank" style="color:var(--accent)">platform.openai.com/api-keys</a><br>
+      2. 点击 <strong>Create new secret key</strong><br>
+      3. 复制 <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px">sk-...</code> 粘贴到上方<br>
+      <span style="color:var(--text-3);font-size:11.5px">gpt-image-1 需要账号完成实名认证</span>
+    </p>`,
+  },
+  gemini: {
+    keyHint: 'Gemini Key 格式：AIza...',
+    models: [
+      { val:'gemini-2.5-flash-preview-05-20', label:'Gemini 2.5 Flash Image（推荐）' },
+      { val:'gemini-2.0-flash-exp', label:'Gemini 2.0 Flash（备用）' },
+    ],
+    guide: `<p style="font-size:13px;color:var(--text-2);line-height:1.7">
+      1. 前往 <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:var(--accent)">aistudio.google.com/app/apikey</a><br>
+      2. 点击 <strong>Create API key</strong><br>
+      3. 复制 <code style="background:var(--surface-2);padding:1px 5px;border-radius:4px">AIza...</code> 粘贴到上方<br>
+      <span style="color:var(--text-3);font-size:11.5px">免费额度较充足，适合测试</span>
+    </p>`,
+  },
+  fal: {
+    keyHint: 'fal.ai Key 格式：xxxxxxxx-xxxx-xxxx:xxxx',
+    models: [
+      { val:'fal-ai/flux/dev', label:'FLUX Dev' },
+      { val:'fal-ai/flux/schnell', label:'FLUX Schnell（快速）' },
+      { val:'fal-ai/flux-pro', label:'FLUX Pro' },
+    ],
+    guide: `<p style="font-size:13px;color:var(--text-2);line-height:1.7">
+      1. 前往 <a href="https://fal.ai/dashboard/keys" target="_blank" style="color:var(--accent)">fal.ai/dashboard/keys</a><br>
+      2. 点击 <strong>Add key</strong><br>
+      3. 复制 Key 粘贴到上方<br>
+      <span style="color:var(--text-3);font-size:11.5px">按量付费，新账号有免费额度</span>
+    </p>`,
+  },
+};
+
+/* ── Platform switch ── */
+function switchPlatform(p) {
+  platform = p;
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.platform === p));
+
+  const cfg = PLATFORMS[p];
+  document.getElementById('keyHint').textContent = cfg.keyHint;
+  document.getElementById('guideContent').innerHTML = cfg.guide;
+
+  // Restore saved key
+  const saved = sessionStorage.getItem('key_' + p);
+  document.getElementById('apiKey').value = saved || '';
+
+  // Models
+  const sel = document.getElementById('modelSelect');
+  sel.innerHTML = cfg.models.map(m => `<option value="${m.val}">${m.label}</option>`).join('');
+
+  // Gemini: no img2img, no neg prompt, no quality
+  const isGemini = p === 'gemini';
+  const isFal = p === 'fal';
+  const isOpenAI = p === 'openai';
+
+  document.getElementById('modeNote').style.display = isGemini ? 'block' : 'none';
+  document.getElementById('negField').style.display = isGemini ? 'none' : 'block';
+  document.getElementById('qualityField').style.display = isOpenAI ? 'block' : 'none';
+  document.getElementById('stepsField').style.display = isFal ? 'block' : 'none';
+
+  if (isGemini) {
+    // Force text2img
+    const pills = document.querySelectorAll('#modeGroup .pill');
+    pills.forEach(pi => pi.classList.remove('active'));
+    pills[0].classList.add('active');
+    document.getElementById('refField').style.display = 'none';
+    document.getElementById('strengthField').style.display = 'none';
+  }
+
+  // Size options differ per platform
+  updateSizeOptions();
+  onModelChange();
+}
+
+function updateSizeOptions() {
+  const grp = document.getElementById('sizeGroup');
+  let opts;
+  if (platform === 'gemini') {
+    opts = [
+      { val:'1:1', label:'1:1' },
+      { val:'9:16', label:'9:16' },
+      { val:'16:9', label:'16:9' },
+      { val:'3:4', label:'3:4' },
+      { val:'4:3', label:'4:3' },
+    ];
+  } else {
+    opts = [
+      { val:'1024x1024', label:'1:1' },
+      { val:'1024x1792', label:'9:16' },
+      { val:'1792x1024', label:'16:9' },
+    ];
+  }
+  grp.innerHTML = opts.map((o,i) =>
+    `<button class="pill${i===0?' active':''}" data-val="${o.val}" onclick="selectPill(this,'sizeGroup')">${o.label}</button>`
+  ).join('');
+}
+
+/* ── Model change ── */
+function onModelChange() {
+  const m = document.getElementById('modelSelect').value;
+  if (m.includes('schnell')) {
+    document.getElementById('steps').value = 4;
+    document.getElementById('stepsVal').textContent = '4';
+  } else if (m.includes('flux')) {
+    document.getElementById('steps').value = 28;
+    document.getElementById('stepsVal').textContent = '28';
+  }
+  // dall-e-3 doesn't support img2img
+  const noImg2Img = m === 'dall-e-3' || platform === 'gemini';
+  if (noImg2Img) {
+    document.querySelectorAll('#modeGroup .pill').forEach((p,i) => p.classList.toggle('active', i===0));
+    onModeChange();
+  }
+  document.querySelectorAll('#modeGroup .pill[data-val="img2img"]').forEach(p => {
+    p.style.opacity = noImg2Img ? '.35' : '1';
+    p.style.pointerEvents = noImg2Img ? 'none' : 'auto';
+  });
+}
+
+/* ── Mode change ── */
+function onModeChange() {
+  const mode = getPillVal('modeGroup');
+  const show = mode === 'img2img';
+  document.getElementById('refField').style.display = show ? 'block' : 'none';
+  if (!show) document.getElementById('strengthField').style.display = 'none';
+}
+
+/* ── Upload ── */
+function handleUpload(e) {
+  const file = e.target.files[0]; if (!file) return;
+  refMime = file.type || 'image/jpeg';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    refBase64 = ev.target.result.split(',')[1];
+    document.getElementById('previewImg').src = ev.target.result;
+    document.getElementById('uploadPlaceholder').style.display = 'none';
+    document.getElementById('previewWrap').style.display = 'block';
+    document.getElementById('strengthField').style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+}
+function removeImg(e) {
+  e.preventDefault(); e.stopPropagation();
+  refBase64 = null;
+  document.getElementById('refImage').value = '';
+  document.getElementById('uploadPlaceholder').style.display = 'flex';
+  document.getElementById('previewWrap').style.display = 'none';
+  document.getElementById('strengthField').style.display = 'none';
+}
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('drag-over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) {
+    handleUpload({ target: { files: [f] } });
+  }
+});
+
+/* ── Helpers ── */
+function selectPill(el, gid) {
+  document.querySelectorAll(`#${gid} .pill`).forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+}
+function getPillVal(gid) {
+  const a = document.querySelector(`#${gid} .pill.active`);
+  return a ? a.dataset.val : null;
+}
+function toggleKey() {
+  const el = document.getElementById('apiKey');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
+function saveKey() {
+  sessionStorage.setItem('key_' + platform, document.getElementById('apiKey').value);
+}
+
+/* ── Generate ── */
+async function generate() {
+  if (busy) return;
+  const key = document.getElementById('apiKey').value.trim();
+  const prompt = document.getElementById('prompt').value.trim();
+  if (!key) { showToast('请填入 API Key'); return; }
+  if (!prompt) { showToast('请填写提示词'); return; }
+
+  setLoading(true);
+  document.getElementById('errorBox').innerHTML = '';
+
+  try {
+    let urls = [];
+    if (platform === 'openai') urls = await callOpenAI(key, prompt);
+    else if (platform === 'gemini') urls = await callGemini(key, prompt);
+    else if (platform === 'fal') urls = await callFal(key, prompt);
+
+    resultUrls = urls;
+    renderResults(urls);
+    document.getElementById('dlBtn').disabled = false;
+    document.getElementById('cpBtn').disabled = false;
+  } catch (err) {
+    showError(err.message || '生成失败');
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+/* ── OpenAI ── */
+async function callOpenAI(key, prompt) {
+  const model = document.getElementById('modelSelect').value;
+  const mode = getPillVal('modeGroup');
+  const size = getPillVal('sizeGroup');
+  const quality = getPillVal('qualityGroup');
+  const n = parseInt(getPillVal('numGroup'));
+
+  // img2img → use edits endpoint (dall-e-2 or gpt-image-1)
+  if (mode === 'img2img' && refBase64) {
+    const fd = new FormData();
+    const blob = b64toBlob(refBase64, refMime);
+    fd.append('image[]', blob, 'reference.png');
+    fd.append('prompt', prompt);
+    fd.append('n', n);
+    fd.append('size', size);
+    if (model !== 'dall-e-3') fd.append('model', model);
+
+    const res = await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}` },
+      body: fd,
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(`OpenAI: ${data.error?.message || res.statusText}`);
+    return data.data.map(d => d.url || ('data:image/png;base64,' + d.b64_json));
+  }
+
+  // text2img → generations endpoint
+  const body = { model, prompt, n, size };
+  if (model === 'gpt-image-1') {
+    body.quality = quality;
+    body.output_format = 'png';
+  } else if (model === 'dall-e-3') {
+    body.quality = quality === 'high' ? 'hd' : 'standard';
+    body.response_format = 'url';
+  } else {
+    body.response_format = 'url';
+  }
+
+  const res = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`OpenAI: ${data.error?.message || res.statusText}`);
+  return data.data.map(d => d.url || ('data:image/png;base64,' + d.b64_json));
+}
+
+/* ── Gemini (Nano Banana / generateContent API) ── */
+async function callGemini(key, prompt) {
+  const model = document.getElementById('modelSelect').value;
+  const n = parseInt(getPillVal('numGroup'));
+
+  const results = [];
+  // generateContent doesn't support batch natively, so call n times in parallel
+  const calls = Array.from({ length: n }, () =>
+    fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: { responseModalities: ['TEXT', 'IMAGE'] },
+      }),
+    }).then(r => r.json())
+  );
+
+  const responses = await Promise.all(calls);
+
+  for (const data of responses) {
+    if (data.error) throw new Error(`Gemini: ${data.error.message}`);
+    const parts = data.candidates?.[0]?.content?.parts || [];
+    for (const part of parts) {
+      if (part.inlineData?.data) {
+        results.push('data:' + (part.inlineData.mimeType || 'image/png') + ';base64,' + part.inlineData.data);
+      }
+    }
+  }
+
+  if (!results.length) throw new Error('Gemini 未返回图片。请确认该模型已开启图像生成权限，或尝试换 Gemini 2.0 Flash。');
+  return results;
+}
+
+/* ── fal.ai ── */
+async function callFal(key, prompt) {
+  const model = document.getElementById('modelSelect').value;
+  const mode = getPillVal('modeGroup');
+  const size = getPillVal('sizeGroup');
+  const steps = parseInt(document.getElementById('steps').value);
+  const n = parseInt(getPillVal('numGroup'));
+  const neg = document.getElementById('negPrompt').value.trim();
+
+  const body = {
+    prompt,
+    image_size: size,
+    num_inference_steps: steps,
+    num_images: n,
+    enable_safety_checker: true,
+    ...(neg && { negative_prompt: neg }),
+  };
+
+  if (mode === 'img2img' && refBase64) {
+    body.image_url = `data:${refMime};base64,${refBase64}`;
+    body.strength = parseFloat(document.getElementById('strength').value);
+  }
+
+  const res = await fetch(`https://fal.run/${model}`, {
+    method: 'POST',
+    headers: { 'Authorization': `Key ${key}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(`fal.ai: ${data.detail || data.message || res.statusText}`);
+  if (!data.images?.length) throw new Error('fal.ai 未返回图片');
+  return data.images.map(i => i.url);
+}
+
+/* ── Render ── */
+function renderResults(urls) {
+  const area = document.getElementById('resultArea');
+  if (urls.length === 1) {
+    area.innerHTML = `<img src="${urls[0]}" alt="生成结果" />`;
+  } else {
+    area.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;width:100%;padding:4px">
+      ${urls.map(u => `<img src="${u}" style="width:100%;border-radius:10px;display:block" />`).join('')}
+    </div>`;
+  }
+}
+
+/* ── Download ── */
+async function downloadAll() {
+  for (let i = 0; i < resultUrls.length; i++) {
+    const url = resultUrls[i];
+    if (url.startsWith('data:')) {
+      const a = document.createElement('a');
+      a.href = url; a.download = `image_${Date.now()}_${i+1}.png`; a.click();
+    } else {
+      try {
+        const blob = await fetch(url).then(r => r.blob());
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `image_${Date.now()}_${i+1}.png`; a.click();
+      } catch { window.open(url, '_blank'); }
+    }
+  }
+  showToast('图片已下载');
+}
+
+function copyPrompt() {
+  const p = document.getElementById('prompt').value.trim();
+  if (p) navigator.clipboard.writeText(p).then(() => showToast('提示词已复制'));
+}
+
+/* ── UI helpers ── */
+function setLoading(val) {
+  busy = val;
+  document.getElementById('generateBtn').disabled = val;
+  document.getElementById('btnText').textContent = val ? '生成中...' : '生成图像';
+  document.getElementById('btnIcon').textContent = val ? '' : '✦';
+  if (val) {
+    document.getElementById('resultArea').innerHTML = `
+      <div class="loading-wrap"><div class="spinner"></div><p>AI 正在创作中，请稍候…</p></div>`;
+    document.getElementById('dlBtn').disabled = true;
+    document.getElementById('cpBtn').disabled = true;
+  }
+}
+
+function showError(msg) {
+  document.getElementById('errorBox').innerHTML = `<div class="error-box">⚠️ ${msg}</div>`;
+  if (!resultUrls.length) {
+    document.getElementById('resultArea').innerHTML = `
+      <div class="result-placeholder">
+        <div class="result-placeholder-icon" style="opacity:.25">✕</div>
+        <p style="color:var(--danger)">生成失败</p>
+      </div>`;
+  }
+}
+
+function b64toBlob(b64, mime) {
+  const bytes = atob(b64);
+  const arr = new Uint8Array(bytes.length);
+  for (let i = 0; i < bytes.length; i++) arr[i] = bytes.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2200);
+}
+
+/* ── Init ── */
+switchPlatform('openai');
+</script>
+</body>
+</html>
