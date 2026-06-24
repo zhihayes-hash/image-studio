@@ -493,7 +493,8 @@ const PLATFORMS = {
   openai: {
     keyHint: 'OpenAI Key 格式：sk-...',
     models: [
-      { val:'gpt-image-1', label:'gpt-image-1（推荐）' },
+      { val:'gpt-image-2', label:'GPT Image 2（最新）' },
+      { val:'gpt-image-1', label:'gpt-image-1' },
       { val:'dall-e-3', label:'dall-e-3' },
       { val:'dall-e-2', label:'dall-e-2' },
     ],
@@ -715,7 +716,10 @@ async function callOpenAI(key, prompt) {
   const quality = getPillVal('qualityGroup');
   const n = parseInt(getPillVal('numGroup'));
 
-  // img2img → use edits endpoint (dall-e-2 or gpt-image-1)
+  const isNewModel = model === 'gpt-image-1' || model === 'gpt-image-2';
+  const noImg2Img_model = model === 'dall-e-3';
+
+  // img2img → use edits endpoint
   if (mode === 'img2img' && refBase64) {
     const fd = new FormData();
     const blob = b64toBlob(refBase64, refMime);
@@ -723,7 +727,7 @@ async function callOpenAI(key, prompt) {
     fd.append('prompt', prompt);
     fd.append('n', n);
     fd.append('size', size);
-    if (model !== 'dall-e-3') fd.append('model', model);
+    fd.append('model', model === 'dall-e-3' ? 'gpt-image-2' : model);
 
     const res = await fetch('https://api.openai.com/v1/images/edits', {
       method: 'POST',
@@ -735,9 +739,9 @@ async function callOpenAI(key, prompt) {
     return data.data.map(d => d.url || ('data:image/png;base64,' + d.b64_json));
   }
 
-  // text2img → generations endpoint
+  // text2img
   const body = { model, prompt, n, size };
-  if (model === 'gpt-image-1') {
+  if (isNewModel) {
     body.quality = quality;
     body.output_format = 'png';
   } else if (model === 'dall-e-3') {
